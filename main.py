@@ -10,18 +10,16 @@ from aiogram.types import Message
 
 from src.config import settings
 from src.database.db import get_db_session
+from src.utils.logging import setup_logging
 from src.utils.query_executor import execute_natural_language_query
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    stream=sys.stdout
-)
-logger = logging.getLogger(__name__)
-
+#set up bot
 bot = Bot(token=settings.bot_token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 dp = Dispatcher()
 
+#set up logging
+setup_logging()
+logger = logging.getLogger(__name__)
 
 @dp.message(CommandStart())
 async def command_start_handler(message: Message) -> None:
@@ -76,16 +74,12 @@ async def query_handler(message: Message) -> None:
         
     except ValueError as e:
         logger.error(f"Error executing query: {e}")
-        await message.answer(f"❌ Error processing query.\n\nError: {html.code(str(e))}\n\nTry reformulating the question or use /help for examples.")
     except Exception as e:
         logger.exception(f"Unexpected error: {e}")
-        await message.answer("❌ Error processing query. Try later.")
 
 
-async def main() -> None:
-    logger.info("Запуск бота...")
-    
-    logger.info("Бот запущен и готов к работе")
+async def main() -> None:    
+    logger.info("Starting bot...")
     await dp.start_polling(bot)
 
 

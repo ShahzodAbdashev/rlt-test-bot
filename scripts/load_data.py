@@ -1,42 +1,39 @@
 import sys
-from pathlib import Path
-
-
-sys.path.insert(0, str(Path(__file__).parent.parent))
-
-
-def main():
-    if len(sys.argv) < 2:
-        print("Usage: python scripts/load_data.py <path_to_json_file>")
-        print("\nExample:")
-        print("  python scripts/load_data.py data/videos.json")
-        sys.exit(1)
-    
-    json_path = sys.argv[1]
-    
-    
-    print(f"Загрузка данных из {json_path}...")
-    try:
-        load_json_to_db(json_path)
-        print("\n✅ Данные успешно загружены!")
-    except Exception as e:
-        print(f"\n❌ Ошибка при загрузке данных: {e}")
-        sys.exit(1)
-
-
 import json
-from datetime import datetime
-from pathlib import Path
 import logging
+from pathlib import Path
+from datetime import datetime
 
 from src.database.models import Video, VideoSnapshot
 from src.database.db import get_db_session
 
+
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 logger = logging.getLogger(__name__)
 
 
+def main():
+    if len(sys.argv) < 2:
+        logger.error("Usage: python scripts/load_data.py <path_to_json_file>")
+        logger.error("Example:")
+        logger.error("  python scripts/load_data.py data/videos.json")
+        sys.exit(1)
+    
+    json_path = sys.argv[1]
+    
+    logger.info(f"Loading data from {json_path}...")
+    try:
+        load_json_to_db(json_path)
+        logger.info("Data successfully loaded!")
+    except Exception as e:
+        logger.error(f"Error loading data: {e}")
+        sys.exit(1)
+
+
+
+
 def parse_datetime(dt_str: str) -> datetime:
-    """Парсит строку даты в datetime объект"""
     from datetime import timezone
     
     formats = [
@@ -52,25 +49,24 @@ def parse_datetime(dt_str: str) -> datetime:
             return dt
         except ValueError:
             continue
-    raise ValueError(f"Не удалось распарсить дату: {dt_str}")
+    raise ValueError(f"Unable to parse date: {dt_str}")
 
 
 def load_json_to_db(json_path: str | Path) -> None:
     json_path = Path(json_path)
     
     if not json_path.exists():
-        raise FileNotFoundError(f"Файл не найден: {json_path}")
+        raise FileNotFoundError(f"File not found: {json_path}")
     
     with open(json_path, "r", encoding="utf-8") as f:
         data = json.load(f)
     
     if not isinstance(data['videos'], list):
-        raise ValueError("JSON должен содержать массив объектов videos")
+        raise ValueError("JSON must contain an array of video objects")
     
     with get_db_session() as db:
         for video_data in data['videos']:
             logger.info(f"Loading video: {video_data['id']}")
-            # Создаем видео
             video = Video(
                 id=video_data["id"],
                 creator_id=video_data["creator_id"],
@@ -82,7 +78,6 @@ def load_json_to_db(json_path: str | Path) -> None:
             )
             db.add(video)
             
-            # Создаем снапшоты
             snapshots = video_data['snapshots']
             for snapshot_data in snapshots:
                 snapshot = VideoSnapshot(
@@ -100,7 +95,7 @@ def load_json_to_db(json_path: str | Path) -> None:
                 )
                 db.add(snapshot)
         
-        print(f"Загружено {len(data)} видео в базу данных")
+        logger.info(f"Loaded {len(data)} videos to database")
 
 if __name__ == "__main__":
     main()

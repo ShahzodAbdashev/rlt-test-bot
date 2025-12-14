@@ -84,7 +84,6 @@ def generate_sql_query(user_query: str) -> str:
             {"role": "user", "content": user_query}
         ],
         temperature=0.7,
-        # tools=tools
     )
     
     sql_query = response.choices[0].message.content.strip()
@@ -101,35 +100,15 @@ def validate_sql_query(sql: str) -> bool:
     
     sql_upper = sql.upper().strip()
     
-    # Проверяем, что запрос начинается с SELECT
     if not sql_upper.startswith("SELECT"):
         logger.warning(f"Query does not start with SELECT: {sql_upper[:50]}")
         return False
     
-    # Проверяем на опасные ключевые слова как отдельные слова (не подстроки)
     dangerous_keywords = ["DROP", "DELETE", "UPDATE", "INSERT", "ALTER", "CREATE", "TRUNCATE", "EXEC", "EXECUTE"]
     for keyword in dangerous_keywords:
-        # Используем регулярное выражение для поиска слова как отдельного токена
-        # \b означает границу слова
         pattern = r'\b' + re.escape(keyword) + r'\b'
         if re.search(pattern, sql_upper):
             logger.warning(f"Dangerous keyword found: {keyword}")
             return False
     
     return True
-
-
-tools = [
-    {
-        "type": "function",
-        "function": {
-            "name": "get_sql_query",
-            "description": "Generate a SQL query to answer the user's question",
-            "parameters": {
-                "type": "object",
-                "properties": {}
-            },
-            "required": ["query"]
-        }
-    }
-]
